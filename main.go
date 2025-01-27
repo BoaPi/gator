@@ -17,27 +17,26 @@ func main() {
 		log.Fatalf("error reading config %v", err)
 	}
 
-	s := state{
+	programState := &state{
 		cfg: &cfg,
 	}
 
 	commands := commands{
-		list: make(map[string]func(*state, command) error),
+		registeredCommands: make(map[string]func(*state, command) error),
 	}
 	commands.register("login", handlerLogin)
 
-	args := os.Args
-
-	if len(args) < 2 {
-		log.Fatal("no command provided")
+	if len(os.Args) < 2 {
+		log.Fatal("Usage: cli <command> [args...]")
+		return
 	}
 
 	command := command{
-		name: args[1],
-		args: args[2:],
+		Name: os.Args[1],
+		Args: os.Args[2:],
 	}
 
-	err = commands.run(&s, command)
+	err = commands.run(programState, command)
 	if err != nil {
 		log.Fatal(err)
 	}
