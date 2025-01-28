@@ -16,7 +16,7 @@ func handlerRegister(s *state, cmd command) error {
 
 	now := time.Now().UTC()
 
-	user, err := s.queries.CreateUser(context.Background(), database.CreateUserParams{
+	user, err := s.db.CreateUser(context.Background(), database.CreateUserParams{
 		ID:        uuid.New(),
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -42,7 +42,7 @@ func handlerLogin(s *state, cmd command) error {
 	}
 	name := cmd.Args[0]
 
-	_, err := s.queries.GetUser(context.Background(), name)
+	_, err := s.db.GetUser(context.Background(), name)
 	if err != nil {
 		return fmt.Errorf("couldn't find user: %w", err)
 	}
