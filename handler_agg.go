@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/BoaPi/gator/internal/database"
@@ -52,41 +53,34 @@ func scrapeFeeds(s *state) {
 	fmt.Printf("Feed %s fetched:\n", feed.Name)
 
 	for _, item := range feedData.Channel.Item {
-		publishedAt, err := time.Parse(time.RFC1123Z, item.PubDate)
-		if err != nil {
-			fmt.Printf("couldn't parse published date: %w\n", err)
-			fmt.Printf("%s\n", item.PubDate)
-			continue
+		publishedAt := sql.NullTime{}
+		if t, err := time.Parse(time.RFC1123Z, item.PubDate); err == nil {
+			publishedAt = sql.NullTime{
+				Time:  t,
+				Valid: true,
+			}
 		}
 
-		var title sql.NullString
-		title.String = item.Title
-
-		if item.Title != "" {
-			title.Valid = true
-		} else {
-			title.Valid = false
-		}
-
-		var description sql.NullString
-		description.String = item.Description
-
-		if item.Description != "" {
-			description.Valid = true
-		} else {
-			description.Valid = false
-		}
-
-		s.db.CreatePost(context.Background(), database.CreatePostParams{
-			ID:          uuid.New(),
-			CreatedAt:   time.Now().UTC(),
-			UpdatedAt:   time.Now().UTC(),
-			Title:       title,
-			Url:         item.Link,
-			Description: description,
-			PublishedAt: publishedAt.UTC(),
+		_, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:        uuid.New(),
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+			Title:     item.Title,
+			Url:       item.Link,
+			Description: sql.NullString{
+				String: item.Description,
+				Valid:  true,
+			},
+			PublishedAt: publishedAt,
 			FeedID:      feed.ID,
 		})
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				continue
+			}
+			log.Printf("couldn't create post: %w", err)
+			continue
+		}
 	}
 	fmt.Println("================================")
 	log.Printf("Feed %s collected, %v posts found", feed.Name, len(feedData.Channel.Item))

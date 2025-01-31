@@ -9,34 +9,31 @@ import (
 )
 
 func handlerBrowse(s *state, cmd command, user database.User) error {
-	if len(cmd.Args) > 1 {
-		return fmt.Errorf("usage: %s <number-of-posts> (optional)", cmd.Name)
-	}
-
-	var limit string = "2"
-
+	limit := 2
 	if len(cmd.Args) == 1 {
-		limit = cmd.Args[0]
-	}
-
-	l, err := strconv.ParseInt(limit, 10, 32)
-	if err != nil {
-		return fmt.Errorf("couldn't parse limit: %w", err)
+		if specifiedLimit, err := strconv.Atoi(cmd.Args[0]); err == nil {
+			limit = specifiedLimit
+		} else {
+			return fmt.Errorf("invalid limit: %w", err)
+		}
 	}
 
 	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
 		UserID: user.ID,
-		Limit:  int32(l),
+		Limit:  int32(limit),
 	})
 	if err != nil {
-		return fmt.Errorf("couldn't get posts: %w", err)
+		return fmt.Errorf("couldn't get posts for user: %w", err)
 	}
 
-	fmt.Printf("Posts for User: %s\n", user.Name)
+	fmt.Printf("Found %d posts for user: %s\n", len(posts), user.Name)
 	for _, post := range posts {
-		fmt.Printf(" * %s\n", post.Title)
+		fmt.Printf("%s from %s\n", post.PublishedAt.Time.Format("Mon Jan 2"), post.FeedName)
+		fmt.Printf("--- %s ---\n", post.Title)
+		fmt.Printf("    %v\n", post.Description.String)
+		fmt.Printf("Link: %s\n", post.Url)
+		fmt.Println("======================================")
 	}
-	fmt.Println("======================================")
 
 	return nil
 }

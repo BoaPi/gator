@@ -23,12 +23,11 @@ RETURNING *;
 
 -- name: GetPostsForUser :many
 SELECT
-    *
+    posts.*,
+    feeds.name AS feed_name
 FROM posts
-WHERE feed_id IN (
-    SELECT feed_follows.feed_id
-    FROM feed_follows
-    WHERE feed_follows.user_id = $1
-)
+INNER JOIN feed_follows ON feed_follows.feed_id = posts.feed_id
+INNER JOIN feeds ON posts.feed_id = feeds.id
+WHERE feed_follows.user_id = $1
 ORDER BY published_at DESC
 LIMIT $2;
