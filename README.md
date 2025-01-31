@@ -10,8 +10,9 @@ Gator is a command line tool to aggregate rss feeds on the terminal.
 ## Installation
 
 - first clone the repository
-- use `go install` from within the repository
+- use `go build` and `go install` from within the repository
   ```cmd
+  go build
   go install
   ```
 
